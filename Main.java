@@ -1,139 +1,203 @@
 import java.util.*;
 
-class Main {
-
-  static class Node {
-    boolean isLocked;
-    int id;
+class Node {
+    String v;
+    List<Node> links;
     Node parent;
-    int anc_locked;
-    int des_locked;
-    ArrayList<Node> children = new ArrayList<>();
-  }
+    int anc_locked, dec_locked, uid;
+    boolean isLocked;
 
-  static void change(Node node, int val) {
-    if (node == null) return;
-    node.anc_locked += val;
-    for (Node i : node.children) change(i, val);
-  }
-
-  static boolean lock(Node node, int id) {
-    if (node.isLocked) return false;
-
-    if (node.anc_locked > 0 || node.des_locked > 0) return false;
-
-    Node parent = node;
-    while (parent != null) {
-      parent.des_locked += 1;
-      parent = parent.parent;
+    Node(String x, Node p) {
+        v = x;
+        parent = p;
+        anc_locked = 0;
+        dec_locked = 0;
+        uid = 0;
+        isLocked = false;
+        links = new ArrayList<>();
     }
 
-    change(node, 1);
-    node.isLocked = true;
-    node.id = id;
+    void addLinks(List<String> l, Node p) {
+        for (String i : l)
+            links.add(new Node(i, p));
+    }
+}
 
-    return true;
-  }
+class Tree {
+    private Node root;
+    private Map<String, Node> vton;
 
-  static boolean unlock(Node node, int id) {
-    if (!node.isLocked || node.id != id) return false;
-
-    Node parent = node;
-    while (parent != null) {
-      parent.des_locked -= 1;
-      parent = parent.parent;
+    Tree(Node r) {
+        root = r;
+        vton = new HashMap<>();
     }
 
-    change(node, -1);
-    node.isLocked = false;
-    node.id = 0;
-
-    return true;
-  }
-
-  static boolean getAllChilds(Node node, ArrayList<Node> a, int id) {
-    if (node == null) return true;
-
-    if (node.isLocked) {
-      if (id != node.id) return false;
-      else a.add(node);
+    Node getRoot() {
+        return root;
     }
 
-    if (node.des_locked == 0) return true;
-
-    for (Node i : node.children) {
-      boolean ans = getAllChilds(i, a, id);
-      if (ans == false) return false;
+    void fillVtoN(Node r) {
+        if (r == null)
+            return;
+        vton.put(r.v, r);
+        for (Node k : r.links)
+            fillVtoN(k);
     }
 
-    return true;
-  }
-
-  static boolean upgrade(Node node, int id) {
-    if (node.isLocked || node.anc_locked > 0 || node.des_locked == 0) return false;
-
-    ArrayList<Node> a = new ArrayList<>();
-    boolean can = getAllChilds(node, a, id);
-    if (!can) return false;
-
-    change(node, 1);
-
-    for (Node i : a) unlock(i, id);
-
-    node.isLocked = true;
-    node.id = id;
-    return true;
-  }
-
-  public static void main(String[] agrs) {
-    Scanner scn = new Scanner(System.in);
-    int n = scn.nextInt();
-    int k = scn.nextInt();
-    int q = scn.nextInt();
-
-    scn.nextLine();
-
-    String[] arr = new String[n];
-    for (int i = 0; i < n; i++) arr[i] = scn.nextLine();
-    
-    HashMap<String, Node> hash = new HashMap<>();
-
-    Node root = new Node();
-    
-    hash.put(arr[0], root);
-
-    Queue<Node> que = new LinkedList<>();
-    que.add(root);
-
-    int index = 1;
-    while (!que.isEmpty() && index < n) {
-      int size = que.size();
-      while (size-- > 0) {
-        Node rem = que.remove();
-        for (int i = 1; i <= k && index < n; i++) {
-          Node newNode = new Node();
-          newNode.parent = rem;
-          hash.put(arr[index], newNode);
-          rem.children.add(newNode);
-          que.add(newNode);
-          index += 1;
+    void informDescendants(Node r, int val) {
+        for (Node k : r.links) {
+            k.anc_locked += val;
+            informDescendants(k, val);
         }
-      }
     }
 
-    for (int i = 0; i < q; i++) {
-      int val = scn.nextInt();
-      String str = scn.next();
-      int id = scn.nextInt();
+    boolean verifyDescendants(Node r, int id, List<Node> v) {
+        if (r.isLocked) {
+            if (r.uid != id)
+                return false;
+            v.add(r);
+        }
+        if (r.dec_locked == 0)
+            return true;
 
-      boolean ans = false;
-      if (val == 1) ans = lock(hash.get(str), id);
-      else if (val == 2) ans = unlock(hash.get(str), id);
-      else if (val == 3) ans = upgrade(hash.get(str), id);
-
-      System.out.println(ans);
-
+        boolean ans = true;
+        for (Node k : r.links) {
+            ans &= verifyDescendants(k, id, v);
+            if (!ans)
+                return false;
+        }
+        return ans;
     }
-    scn.close();
-  }
+
+    boolean lock(String v, int id) {
+        Node t = vton.get(v);
+        if (t.isLocked)
+            return false;
+
+        if (t.anc_locked != 0)
+            return false;
+        if (t.dec_locked != 0)
+            return false;
+
+        Node cur = t.parent;
+        while (cur != null) {
+            cur.dec_locked++;
+            cur = cur.parent;
+        }
+        informDescendants(t, 1);
+        t.isLocked = true;
+        t.uid = id;
+        return true;
+    }
+
+    boolean unlock(String v, int id) {
+        Node t = vton.get(v);
+        if (!t.isLocked)
+            return false;
+        if (t.isLocked && t.uid != id)
+            return false;
+
+        Node cur = t.parent;
+        while (cur != null) {
+            cur.dec_locked--;
+            cur = cur.parent;
+        }
+        informDescendants(t, -1);
+        t.isLocked = false;
+        return true;
+    }
+
+    boolean upgrade(String v, int id) {
+        Node t = vton.get(v);
+        if (t.isLocked)
+            return false;
+
+        if (t.anc_locked != 0)
+            return false;
+        if (t.dec_locked == 0)
+            return false;
+
+        List<Node> vec = new ArrayList<>();
+        if (verifyDescendants(t, id, vec)) {
+            for (Node k : vec) {
+                unlock(k.v, id);
+            }
+        } else
+            return false;
+        lock(v, id);
+        return true;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        int n = scanner.nextInt();
+        int m = scanner.nextInt();
+        int q = scanner.nextInt();
+
+        List<String> s = new ArrayList<>();
+        for (int i = 0; i < n; i++)
+            s.add(scanner.next());
+
+        Node r = new Node(s.get(0), null);
+        r = buildTree(r, m, s);
+
+        Tree t = new Tree(r);
+        t.fillVtoN(t.getRoot());
+
+        int op, uid;
+        String sq;
+        for (int i = 0; i < q; i++) {
+            op = scanner.nextInt();
+            sq = scanner.next();
+            uid = scanner.nextInt();
+            switch (op) {
+                case 1:
+                    if (t.lock(sq, uid))
+                        System.out.println("true");
+                    else
+                        System.out.println("false");
+                    break;
+                case 2:
+                    if (t.unlock(sq, uid))
+                        System.out.println("true");
+                    else
+                        System.out.println("false");
+                    break;
+                case 3:
+                    if (t.upgrade(sq, uid))
+                        System.out.println("true");
+                    else
+                        System.out.println("false");
+                    break;
+            }
+        }
+        scanner.close();
+    }
+
+    private static Node buildTree(Node root, int m, List<String> s) {
+        Queue<Node> q = new LinkedList<>();
+        q.add(root);
+
+        int st = 1;
+        while (!q.isEmpty()) {
+            Node r = q.poll();
+
+            if (st >= s.size())
+                continue;
+
+            List<String> temp = new ArrayList<>();
+            for (int i = st; i < st + m; i++)
+                temp.add(s.get(i));
+            r.addLinks(temp, r);
+            st += m;
+
+            for (Node k : r.links)
+                q.add(k);
+        }
+
+        return root;
+    }
 }
