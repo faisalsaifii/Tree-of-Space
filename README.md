@@ -24,11 +24,20 @@ An unlock operation is only possible if the vertex is already locked and locked 
 * **S :** Name of Node to perform Query on
 * **ID :** ID of user that is performing the Query
 
-## Structure of a Tree Node
+## Example Input
 
-* **Is Locked :** Boolean, stores whether current node is locked or not
-* **ID :** Integer, stores the User ID that has locked the node
-* **Parent :** Node, stores reference to the parent node from the current node
-* **Ancestors Locked :** Integer, stores number of ancestors of the current node that are locked
-* **Descendents Locked :** Integer, stores number of descendents of the current node that are locked
-* **Children :** ArrayList, stores all the children of the current node
+```bash
+7
+2
+3
+World
+Asia
+Africa
+China
+India
+South Africa
+Egypt
+1 China 9
+2 India 9
+3 Asia 9
+```

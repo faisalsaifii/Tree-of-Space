@@ -91,9 +91,12 @@ class Main {
     int k = scn.nextInt();
     int q = scn.nextInt();
 
-    HashMap<String, Node> hash = new HashMap<>();
+    scn.nextLine();
+
     String[] arr = new String[n];
-    for (int i = 0; i < n; i++) arr[i] = scn.next();
+    for (int i = 0; i < n; i++) arr[i] = scn.nextLine();
+    
+    HashMap<String, Node> hash = new HashMap<>();
 
     Node root = new Node();
     
@@ -103,7 +106,7 @@ class Main {
     que.add(root);
 
     int index = 1;
-    while (que.size() > 0 && index < n) {
+    while (!que.isEmpty() && index < n) {
       int size = que.size();
       while (size-- > 0) {
         Node rem = que.remove();
